@@ -1,0 +1,33 @@
+v0.2.0
+------
+- KSP 1.3.1
+- Complete rewrite
+- Persistence improvements
+-- Settings are available in the main menu to enable/disable parameters on a per-save basis
+-- UI on/off settings are persisted between scenes in saves
+- UI improvements
+-- Added better main window to control smaller windows
+-- Better looking UI components for ray overlay
+-- Better looking ray overlay in VAB and flight
+-- Ray color is now scaled to absolute flux to help design
+-- Ray overlay can be set to display sinks in flux units (Sv) or time units (time to rad sickness or death)
+-- Improved overlay display of shadow shields
+- Simulation improvements
+-- Improved performance in all areas
+-- Improved parameterization and logging for all components
+-- Point simulation is disabled in flight for empty crew containers (saves cycles)
+-- Point simulation is disabled in flight for empty probe cores (saves cycles)
+-- RadioactiveEngine now takes the tweakable thrust limiter into account when handling emission
+
+v0.1.1
+------
+- Fixed rendering of overlay rays in non-static situations
+- Fixed UI overflow with very small dose rates
+- Fixed overlay info windows being shown in the map view
+- Added placeholder Geiger Counter (thermometer) science part, which can track current and total radiation doses (resettable)
+- Added placeholder Storm Cellar part, which has 85% radiation shielding but roughly 3x the mass of a standard hitchhiker
+
+
+v0.1.0
+------
+- Initial Release

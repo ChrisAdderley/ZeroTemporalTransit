@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual C# Express 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZeroTemporalTransit", "ZeroTemporalTransit.csproj", "{3D708873-E502-4AFC-BE15-ADAB3587FBE3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3D708873-E502-4AFC-BE15-ADAB3587FBE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D708873-E502-4AFC-BE15-ADAB3587FBE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D708873-E502-4AFC-BE15-ADAB3587FBE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D708873-E502-4AFC-BE15-ADAB3587FBE3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		Policies = $0
+		$0.DotNetNamingPolicy = $1
+		$1.DirectoryNamespaceAssociation = PrefixedHierarchical
+		$0.TextStylePolicy = $2
+		$2.inheritsSet = null
+		$2.scope = text/x-csharp
+		$0.CSharpFormattingPolicy = $3
+		$3.scope = text/x-csharp
+		$0.TextStylePolicy = $4
+		$4.FileWidth = 80
+		$4.TabsToSpaces = True
+		$4.scope = text/plain
+		$0.VersionControlPolicy = $5
+	EndGlobalSection
+EndGlobal

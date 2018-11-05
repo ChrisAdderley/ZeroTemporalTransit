@@ -1,0 +1,2 @@
+/github/ZeroTemporalTransit/Source/ZeroTemporalTransit/obj/Debug/ZeroTemporalTransit.csprojResolveAssemblyReference.cache
+/github/ZeroTemporalTransit/Source/ZeroTemporalTransit/obj/Debug/ZeroTemporalTransit.csproj.CoreCompileInputs.cache
