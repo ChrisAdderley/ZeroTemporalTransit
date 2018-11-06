@@ -23,7 +23,6 @@ namespace ZeroTemporalTransit
         [KSPField(isPersistant = false, guiActive = true, guiName = "Available Energy")]
         public string AvailableEnergy;
 
-
         // Name of the schematic bubble object
         [KSPField(isPersistant = false)]
         public string SchematicBubbleObjectName = "";
@@ -298,7 +297,7 @@ namespace ZeroTemporalTransit
         double CalculateJumpCost(double distance)
         {
             double massCost = part.vessel.totalMass * ZTTConstants.energyPerMass;
-            double bubbleSizeCost = BubbleRadius * ZTTConstants.energyRadiusScale;
+            double bubbleSizeCost = (4.0 / 3.0f) * Math.PI * Math.Pow(BubbleRadius, 3) * ZTTConstants.energyRadiusScale;
             double distanceCost = (massCost + bubbleSizeCost) * distance * ZTTConstants.energyDistanceScale;
             return distanceCost;
         }
