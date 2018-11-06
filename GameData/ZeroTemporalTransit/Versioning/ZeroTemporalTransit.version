@@ -1,0 +1,28 @@
+{
+    "NAME":"ZeroTemporalTransit",
+    "URL":"https://raw.githubusercontent.com/ChrisAdderley/ZeroTemporalTransit/master/GameData/ZeroTemporalTransit/Versioning/ZeroTemporalTransit.version",
+    "DOWNLOAD":"http://forum.kerbalspaceprogram.com/index.php?/topic/155465-122-near-future-technologies",
+    "VERSION":
+    {
+        "MAJOR":0,
+        "MINOR":1,
+        "PATCH":0,
+        "BUILD":0
+    },
+    "KSP_VERSION":
+    {
+        "MAJOR":1,
+        "MINOR":5,
+        "PATCH":1
+    },
+    "KSP_VERSION_MIN":{
+        "MAJOR":1,
+        "MINOR":5,
+        "PATCH":1
+    },
+    "KSP_VERSION_MAX":{
+        "MAJOR":1,
+        "MINOR":5,
+        "PATCH":99
+    }
+}

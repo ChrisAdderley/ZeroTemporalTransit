@@ -13,7 +13,10 @@ namespace ZeroTemporalTransit
         public static double energyPerMass;
         // A scaling factor for the energy needed to extend the bubble
         public static double energyRadiusScale;
+        // A scaling factor for the energy needed to move a distance
+        public static double energyDistanceScale;
 
+        public static float bubbleOuterOffset = 1.0f;
         public static void Load()
         {
             ConfigNode settingsNode;
