@@ -1,8 +1,9 @@
-====================
-RADIOACTIVITY v0.2.0
-====================
+============================
+ZERO TEMPORAL TRANSIT v0.1.0
+============================
 
-A mod about radiation!
+This mod adds an FTL drive that is loosely based on the one depicted in Peter Hamilton's Confederation series. It allows instant (zero temporal) transit between two locations, but is momentum-preserving - you will have to circularize at your destination.
+
 
 ============
 DEPENDENCIES
@@ -15,7 +16,7 @@ Required:
 INSTALLATION
 ============
 
-I recommend removing any previous versions of Radioactivity before installing an update.
+I recommend removing any previous versions of the mod before installing an update.
 
 To install, place the GameData folder inside your Kerbal Space Program folder. If asked to overwrite files, do so.
 
