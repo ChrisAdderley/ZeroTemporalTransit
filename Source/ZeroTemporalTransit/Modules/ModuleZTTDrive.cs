@@ -31,6 +31,12 @@ namespace ZeroTemporalTransit
     [KSPField(isPersistant = false)]
     public string ResourceName = "PatternedEnergy";
 
+    [KSPField(isPersistant = true)]
+    public Vector3d storedDestination = Vector3d.zero;
+
+    [KSPField(isPersistant = true)]
+    public bool hasDestination = false;
+
     // Toggles the schematic warp bubble rendererer
     [KSPEvent(guiActive = true, guiName = "Visualize Bubble", active = true)]
     public void ToggleBubble()
@@ -41,10 +47,30 @@ namespace ZeroTemporalTransit
         StartCoroutine(ActivateSchematicRenderer());
     }
 
+    [KSPEvent(guiActive = true, guiName = "Plot Jump", active = true)]
+    public void PlotJump()
+    {
+      LogUtils.Log(String.Format("[ModuleZTTDrive]: Opening plotting overlay"));
+      ZeroTemporalTransitUI.Instance.PlotJump(this, storedDestination);
+    }
+
+    [KSPEvent(guiActive = false, guiName = "Activate Drive", active = true)]
+    public void Jump()
+    {
+        DoWarpJump(storedJump);
+    }
+
     // Schematic bubble variables
     private bool schematicBubbleOn;
     private MeshRenderer schematicBubbleRenderer;
     private Transform schematicBubbleTransform;
+
+    public void SetDestination(Vector3d destination)
+    {
+      LogUtils.Log(String.Format("[ModuleZTTDrive]: Set destination to {0}", destination));
+      hasDestination = true;
+      storedDestination = destination;
+    }
 
     public override string GetInfo()
     {

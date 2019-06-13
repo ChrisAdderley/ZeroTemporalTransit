@@ -48,6 +48,7 @@ namespace ZeroTemporalTransit.UI
     double currentDistance = 0d;
     #endregion
 
+    public static ZeroTemporalTransitUI Instance { get; private set; }
     public UIResources GUIResources { get { return resources; } }
 
     protected virtual void InitUI()
@@ -72,6 +73,7 @@ namespace ZeroTemporalTransit.UI
 
     protected virtual void Awake()
     {
+      Instance = this;
       if (Settings.DebugUIMode)
         Utils.Log("[UI]: Awake fired");
     }
@@ -227,7 +229,7 @@ namespace ZeroTemporalTransit.UI
     Camera mapCamera;
     JumpTargetCursor cursor;
 
-    public void EnableTargetPickerMode(ModuleZTTDrive zttController)
+    public void PlotJump(ModuleZTTDrive zttController, Vector3d storedDestination)
     {
       driver = zttController;
 
