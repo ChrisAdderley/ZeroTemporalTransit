@@ -1,2 +1,9 @@
 /github/ZeroTemporalTransit/Source/ZeroTemporalTransit/obj/Debug/ZeroTemporalTransit.csprojResolveAssemblyReference.cache
 /github/ZeroTemporalTransit/Source/ZeroTemporalTransit/obj/Debug/ZeroTemporalTransit.csproj.CoreCompileInputs.cache
+C:\Users\Chris\KSP\Repos\ZeroTemporalTransit\Source\ZeroTemporalTransit\obj\Debug\ZeroTemporalTransit.csprojAssemblyReference.cache
+C:\Users\Chris\KSP\Repos\ZeroTemporalTransit\Source\ZeroTemporalTransit\obj\Debug\ZeroTemporalTransit.csproj.CoreCompileInputs.cache
+C:\Users\Chris\KSP\Repos\ZeroTemporalTransit\GameData\ZeroTemporalTransit\Plugins\ZeroTemporalTransit.dll
+C:\Users\Chris\KSP\Repos\ZeroTemporalTransit\GameData\ZeroTemporalTransit\Plugins\ZeroTemporalTransit.pdb
+C:\Users\Chris\KSP\Repos\ZeroTemporalTransit\Source\ZeroTemporalTransit\obj\Debug\ZeroTemporalTransit.csproj.CopyComplete
+C:\Users\Chris\KSP\Repos\ZeroTemporalTransit\Source\ZeroTemporalTransit\obj\Debug\ZeroTemporalTransit.dll
+C:\Users\Chris\KSP\Repos\ZeroTemporalTransit\Source\ZeroTemporalTransit\obj\Debug\ZeroTemporalTransit.pdb

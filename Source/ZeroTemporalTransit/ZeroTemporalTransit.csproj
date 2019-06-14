@@ -33,10 +33,16 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\..\..\Games\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Games\Steam\steamapps\common\Kerbal Space Program\KSP_x64_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
-    <Reference Include="KSPUtil">
-      <HintPath>..\..\..\..\..\Games\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\KSPUtil.dll</HintPath>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>..\..\..\..\..\..\..\Games\Steam\steamapps\common\Kerbal Space Program\KSP_x64_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+    <Reference Include="Ionic.Zip">
+      <HintPath>..\..\..\..\..\..\..\Games\Steam\steamapps\common\Kerbal Space Program\KSP_x64_Data\Managed\Ionic.Zip.dll</HintPath>
+    </Reference>
+    <Reference Include="KSPAssets">
+      <HintPath>..\..\..\..\..\..\..\Games\Steam\steamapps\common\Kerbal Space Program\KSP_x64_Data\Managed\KSPAssets.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -46,10 +52,10 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\..\..\Games\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Games\Steam\steamapps\common\Kerbal Space Program\KSP_x64_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.UI">
-      <HintPath>..\..\..\..\..\Games\Steam\SteamApps\common\Kerbal Space Program\KSP_Data\Managed\UnityEngine.UI.dll</HintPath>
+      <HintPath>..\..\..\..\..\..\..\Games\Steam\steamapps\common\Kerbal Space Program\KSP_x64_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\..\..\..\Users\cadderley\Library\Application Support\Steam\steamapps\common\Kerbal Space Program\Managed\Assembly-CSharp.dll</HintPath>
@@ -61,8 +67,11 @@
   <ItemGroup>
     <Compile Include="Modules\ModuleZTTDrive.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Settings\Settings.cs" />
+    <Compile Include="UI\TargetCursor.cs" />
+    <Compile Include="UI\UIResources.cs" />
+    <Compile Include="UI\ZeroTemporalTransitUI.cs" />
     <Compile Include="ZeroTemporalTransit.cs" />
-    <Compile Include="Settings\ZTTConstants.cs" />
     <Compile Include="Utils\LogUtils.cs" />
     <Compile Include="Utils\FormatUtils.cs" />
     <Compile Include="Utils\ConfigNodeUtils.cs" />
@@ -70,12 +79,19 @@
     <Compile Include="Utils\VesselUtils.cs" />
     <Compile Include="Modules\ModuleEnergyPatterningCell.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Settings\" />
-    <Folder Include="Utils\" />
-    <Folder Include="UI\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>del "C:\Games\Steam\steamapps\common\Kerbal Space Program\GameData\ZeroTemporalTransit\Plugins\UnityEngine.dll"
+del "C:\Games\Steam\steamapps\common\Kerbal Space Program\GameData\ZeroTemporalTransit\Plugins\KSPAssets.dll"
+del "C:\Games\Steam\steamapps\common\Kerbal Space Program\GameData\ZeroTemporalTransit\Plugins\Ionic.Zip.dll"
+del "C:\Games\Steam\steamapps\common\Kerbal Space Program\GameData\ZeroTemporalTransit\Plugins\KSPTrackIR.dll"
+del "C:\Games\Steam\steamapps\common\Kerbal Space Program\GameData\ZeroTemporalTransit\Plugins\Mono.Cecil.dll"
+del "C:\Games\Steam\steamapps\common\Kerbal Space Program\GameData\ZeroTemporalTransit\Plugins\TDx.TDxInput.dll"
+del "C:\Games\Steam\steamapps\common\Kerbal Space Program\GameData\ZeroTemporalTransit\Plugins\UnityEngine.UI.dll"
+del "C:\Games\Steam\steamapps\common\Kerbal Space Program\GameData\ZeroTemporalTransit\Plugins\Assembly-CSharp.dll"
+del "C:\Games\Steam\steamapps\common\Kerbal Space Program\GameData\ZeroTemporalTransit\Plugins\Assembly-CSharp-firstpass.dll"</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

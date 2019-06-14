@@ -6,7 +6,7 @@ using System.Collections;
 using System.Linq;
 using System.Text;
 using UnityEngine;
-using ZeroTemporalTransit;
+using ZeroTemporalTransit.UI;
 using Contracts.Parameters;
 
 namespace ZeroTemporalTransit
@@ -50,14 +50,14 @@ namespace ZeroTemporalTransit
     [KSPEvent(guiActive = true, guiName = "Plot Jump", active = true)]
     public void PlotJump()
     {
-      LogUtils.Log(String.Format("[ModuleZTTDrive]: Opening plotting overlay"));
+      Utils.Log(String.Format("[ModuleZTTDrive]: Opening plotting overlay"));
       ZeroTemporalTransitUI.Instance.PlotJump(this, storedDestination);
     }
 
     [KSPEvent(guiActive = false, guiName = "Activate Drive", active = true)]
     public void Jump()
     {
-        DoWarpJump(storedJump);
+        DoWarpJump(storedDestination);
     }
 
     // Schematic bubble variables
@@ -67,7 +67,7 @@ namespace ZeroTemporalTransit
 
     public void SetDestination(Vector3d destination)
     {
-      LogUtils.Log(String.Format("[ModuleZTTDrive]: Set destination to {0}", destination));
+      Utils.Log(String.Format("[ModuleZTTDrive]: Set destination to {0}", destination));
       hasDestination = true;
       storedDestination = destination;
     }
@@ -93,11 +93,12 @@ namespace ZeroTemporalTransit
       if (HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor)
       {
         schematicBubbleTransform = part.FindModelTransform(SchematicBubbleObjectName);
-        schematicBubbleRenderer = schematicBubbleTransform.GetComponent<MeshRenderer>();
+        if (schematicBubbleTransform != null)
+          schematicBubbleRenderer = schematicBubbleTransform.GetComponent<MeshRenderer>();
 
         if (schematicBubbleTransform == null || schematicBubbleRenderer == null)
         {
-          LogUtils.LogError(String.Format("[ModuleZTTDrive]: Could not find schematic bubble named {0} on part, aborting", SchematicBubbleObjectName));
+          Utils.LogError(String.Format("[ModuleZTTDrive]: Could not find schematic bubble named {0} on part, aborting", SchematicBubbleObjectName));
         }
       }
     }
@@ -137,7 +138,7 @@ namespace ZeroTemporalTransit
     /// <param name="destination">Destination.</param>
     public void DoWarpJump(Vector3d destination)
     {
-      LogUtils.Log(String.Format("[ModuleZTTDrive]: Attempting ZTT jump"));
+      Utils.Log(String.Format("[ModuleZTTDrive]: Attempting ZTT jump"));
       if (TestJumpConditions(destination))
         InitiateJump(destination);
     }
@@ -172,20 +173,20 @@ namespace ZeroTemporalTransit
     {
       for (int i = 0; i < toKill.Count; i++)
       {
-        LogUtils.Log(String.Format("[ModuleZTTDrive]: Part {0} is outside the warp bubble, destroying", toKill[i].partInfo.name));
+        Utils.Log(String.Format("[ModuleZTTDrive]: Part {0} is outside the warp bubble, destroying", toKill[i].partInfo.name));
         toKill[i].explode();
       }
     }
 
     IEnumerator PlayWarpOutEffects()
     {
-      LogUtils.Log(String.Format("[ModuleZTTDrive]: Playing warp bubble effects"));
+      Utils.Log(String.Format("[ModuleZTTDrive]: Playing warp bubble effects"));
       yield return 0;
     }
 
     IEnumerator PlayWarpInEffects()
     {
-      LogUtils.Log(String.Format("[ModuleZTTDrive]: Playing warp out effects"));
+      Utils.Log(String.Format("[ModuleZTTDrive]: Playing warp out effects"));
       yield return 0;
     }
 
@@ -199,7 +200,7 @@ namespace ZeroTemporalTransit
       double totalDistance = Vector3d.Distance(destination, part.vessel.GetWorldPos3D());
       double cost = CalculateJumpCost(totalDistance);
 
-      LogUtils.Log(String.Format("[ModuleZTTDrive]: Jump will cost {0:F4} energy", cost));
+      Utils.Log(String.Format("[ModuleZTTDrive]: Jump will cost {0:F4} energy", cost));
 
       double amt = 0.0;
       double maxAmt = 0.0;
@@ -232,10 +233,10 @@ namespace ZeroTemporalTransit
     /// </summary>
     IEnumerator ActivateSchematicRenderer()
     {
-      LogUtils.Log(String.Format("[ModuleZTTDrive]: Playing schematic renderer in animation"));
+      Utils.Log(String.Format("[ModuleZTTDrive]: Playing schematic renderer in animation"));
       schematicBubbleRenderer.enabled = true;
       schematicBubbleOn = true;
-      LogUtils.Log(String.Format("[ModuleZTTDrive]: Schematic renderer on"));
+      Utils.Log(String.Format("[ModuleZTTDrive]: Schematic renderer on"));
       yield return 0;
     }
 
@@ -244,10 +245,10 @@ namespace ZeroTemporalTransit
     /// </summary>
     IEnumerator DisableSchematicRenderer()
     {
-      LogUtils.Log(String.Format("[ModuleZTTDrive]: Playing schematic renderer out animation"));
+      Utils.Log(String.Format("[ModuleZTTDrive]: Playing schematic renderer out animation"));
       schematicBubbleOn = false;
       schematicBubbleRenderer.enabled = false;
-      LogUtils.Log(String.Format("[ModuleZTTDrive]: Schematic renderer off"));
+      Utils.Log(String.Format("[ModuleZTTDrive]: Schematic renderer off"));
       yield return 0;
     }
     #endregion
@@ -268,7 +269,7 @@ namespace ZeroTemporalTransit
         }
       }
 
-      LogUtils.Log(String.Format("[ModuleZTTDrive]: Found {0} safe parts and {1} unsafe parts out of {2} total", includedParts.Count, unsafeParts.Count, part.vessel.parts.Count));
+      Utils.Log(String.Format("[ModuleZTTDrive]: Found {0} safe parts and {1} unsafe parts out of {2} total", includedParts.Count, unsafeParts.Count, part.vessel.parts.Count));
       return unsafeParts;
     }
 
@@ -324,7 +325,7 @@ namespace ZeroTemporalTransit
     /// </summary>
     /// <returns>The cost of the jump</returns>
     /// <param name="distance">The distance in m</param>
-    double CalculateJumpCost(double distance)
+    public double CalculateJumpCost(double distance)
     {
       double massCost = part.vessel.totalMass * Settings.energyPerMass;
       double bubbleSizeCost = (4.0 / 3.0f) * Math.PI * Math.Pow(BubbleRadius, 3) * Settings.energyRadiusScale;
@@ -337,7 +338,7 @@ namespace ZeroTemporalTransit
     /// </summary>
     /// <returns>The randomness in the jump in m</returns>
     /// <param name="distance">The distance in m</param>
-    double CalculateDispersion(double distance)
+    public double CalculateDispersion(double distance)
     {
 
       double distanceCost = distance * Settings.dispersionDistanceScale;

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using KSP.Localization;
 
 namespace ZeroTemporalTransit
 {
@@ -38,7 +39,7 @@ namespace ZeroTemporalTransit
       if (state != PartModule.StartState.Editor)
         this.part.force_activate();
         
-      base.OnStart();
+      base.OnStart(state);
       Fields["StorageStatus"].guiName = Localizer.Format("#LOC_ZTT_ModuleEnergyPatterningCell_Status_Title");
     }
 

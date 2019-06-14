@@ -5,7 +5,7 @@ using System.Text;
 using UnityEngine;
 using KSP.UI.Screens;
 using KSP.Localization;
-
+using Vectrosity;
 
 namespace ZeroTemporalTransit.UI
 {
@@ -14,8 +14,7 @@ namespace ZeroTemporalTransit.UI
     public List<Vector3d> Vertices = new List<Vector3d>();
 
     private List<Vector3> vl_Vertices = new List<Vector3>();
-
-    Camera mapCamera;
+    
     Transform cursorXform;
     Transform cursorPlaneXform;
     VectorLine billboardCircle;
@@ -24,40 +23,43 @@ namespace ZeroTemporalTransit.UI
     VectorLine originLine;
 
 
-    public JumpTargetCursor(Vector3 position, float size, Camera camera)
+    public JumpTargetCursor(Vector3 position, float size)
     {
-      mapCamera = camera;
       GameObject cursor = new GameObject("JumpCursor");
       GameObject cursorPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+      GameObject.DestroyImmediate(cursorPlane.GetComponent<Collider>());
       cursorXform = cursor.GetComponent<Transform>();
       cursorPlaneXform = cursorPlane.GetComponent<Transform>();
-      Mesh planeMesh = cursorPlane.GetComponent<MeshRenderer>().mesh;
+      Mesh planeMesh = cursorPlane.GetComponent<MeshFilter>().mesh;
 
-      billboardCircle = new VectorLine("JumpCursorCircle",  new List<Vector3>(), 2.0f, 10.0f);
+      billboardCircle = new VectorLine("JumpCursorCircle",  new List<Vector3>(100), 50.0f);
       billboardCircle.MakeCircle(position, size);
       billboardCircle.drawTransform = cursorXform;
 
-      baseMesh = new VectorLine("JumpCursorMesh",  new List<Vector3>(), 2.0f, 10.0f,  LineType.Discrete);
+      baseMesh = new VectorLine("JumpCursorMesh",  new List<Vector3>(), 50.0f,  LineType.Discrete);
       baseMesh.MakeWireframe(planeMesh);
       baseMesh.drawTransform = cursorPlaneXform;
 
-      linkedLine = new VectorLine("JumpCursorMeshLine",  new List<Vector3>(), 2.0f, 10.0f);
-      originLine = new VectorLine("JumpCursorOriginLine",  new List<Vector3>(), 2.0f, 10.0f);
+      cursorPlaneXform.localScale = Vector3.one*100f;
+      baseMesh.layer = 24;
 
-      cursorPlane.GetComponent<MeshRenderer>().active = false;
+      linkedLine = new VectorLine("JumpCursorMeshLine",  new List<Vector3>(2), 50.0f);
+      originLine = new VectorLine("JumpCursorOriginLine",  new List<Vector3>(2), 50.0f);
+
+      ///cursorPlane.GetComponent<MeshRenderer>().enabled = false;
     }
 
     /// <summary>
     /// Cleans up created transforms and lines
     /// </summary>
-    public void Destroy()
+    public void DestroyCursor()
     {
-      Destroy(cursorXform);
-      Destroy(cursor);
-      VectorLine.Destroy(linkedLine);
-      VectorLine.Destroy(originLine);
-      VectorLine.Destroy(baseMesh);
-      VectorLine.Destroy(billboardCircle);
+      GameObject.Destroy(cursorXform);
+      GameObject.Destroy(cursorXform);
+      VectorLine.Destroy(ref linkedLine);
+      VectorLine.Destroy(ref originLine);
+      VectorLine.Destroy(ref baseMesh);
+      VectorLine.Destroy(ref billboardCircle);
     }
     /// <summary>
     /// Turns the renderers on or off
@@ -77,7 +79,7 @@ namespace ZeroTemporalTransit.UI
     {
       UpdateBillboard(pos, scale);
       UpdateMesh(pos, scale, parentPos);
-      UpdateConnections(pos, parentPos, originPos)
+      UpdateConnections(pos, parentPos, originPos);
     }
 
     /// <summary>
@@ -87,7 +89,7 @@ namespace ZeroTemporalTransit.UI
     {
       cursorXform.position = pos;
       cursorXform.localScale = scale * Vector3.one;
-      cursorXform.LookAt(mapCamera.transform);
+      cursorXform.LookAt(PlanetariumCamera.Camera.transform);
       billboardCircle.Draw3D();
     }
     /// <summary>

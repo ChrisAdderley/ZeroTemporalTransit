@@ -8,7 +8,7 @@ using UnityEngine;
 namespace ZeroTemporalTransit
 {
 
-    public static class LogUtils
+    public static class Utils
     {
 
         public const string PLUGIN_NAME = "ZeroTemporalTransit";

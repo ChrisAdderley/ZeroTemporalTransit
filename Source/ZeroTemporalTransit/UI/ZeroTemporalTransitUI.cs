@@ -115,7 +115,7 @@ namespace ZeroTemporalTransit.UI
     /// Draw the window
     /// </summary>
     /// <param name="windowId">window ID</param>
-    protected override void DrawWindow(int windowId)
+    protected void DrawWindow(int windowId)
     {
       GUILayout.BeginHorizontal();
       GUILayout.Label(dvToCircularizeTitle);
@@ -150,7 +150,7 @@ namespace ZeroTemporalTransit.UI
             ListenForInput();
           }
 
-          jumpCost = String.Format("{0:F1} ", driver.CalculateJumpCost(currentTarget));
+          jumpCost = String.Format("{0:F1} ", driver.CalculateJumpCost(currentDistance));
           jumpDistance = String.Format("{0} m", currentDistance);
           jumpDispersion = String.Format("{0} m", driver.CalculateDispersion(currentDistance));
         }
@@ -168,7 +168,7 @@ namespace ZeroTemporalTransit.UI
       {
         yMode = false;
       }
-      if (Input.GetKeyDown("J"))
+      if (Input.GetKeyDown("j"))
       {
         yMode = false;
         xzMode = false;
@@ -185,14 +185,14 @@ namespace ZeroTemporalTransit.UI
       Vector2 cursorUIPosition = GetCursorUIPosition();
 
       // Update the cursor object's position/scale
-      float cursorScale = 1f;
+      float cursorScale = 25f;
       if (cursor != null)
       {
         cursor.Update(cursorScaledSpacePosition, cursorScale, zeroPlaneScaledSpacePosition, vesselScaledSpacePosition);
       }
 
       // Get the target position in world space
-      currentTarget = ScaledSpace.ScaledtoLocalSpace((Vector3d)cursorScaledSpacePosition);
+      currentTarget = ScaledSpace.ScaledToLocalSpace((Vector3d)cursorScaledSpacePosition);
       // Get the distance to the current jump point in world space
       currentDistance = Vector3d.Distance(currentTarget, driver.part.vessel.GetWorldPos3D());
       targetBody = FlightGlobals.getMainBody(currentTarget);
@@ -206,12 +206,13 @@ namespace ZeroTemporalTransit.UI
     Vector3 GetCursorScaledSpacePosition(Vector3 zeroPlanePosition)
     {
       Vector3 cursorScaledSpacePosition = Vector3.zero;
-      Ray ray = mapCamera.ScreenPointToRay(Input.mousePosition);
+      Ray ray = PlanetariumCamera.Camera.ScreenPointToRay(Input.mousePosition);
       Plane hPlane = new Plane(Vector3.up, zeroPlanePosition);
       float distance = 0;
       if (hPlane.Raycast(ray, out distance)){
         // get the hit point:
         cursorScaledSpacePosition = ray.GetPoint(distance);
+        Utils.Log(cursorScaledSpacePosition.ToString());
       }
       return cursorScaledSpacePosition;
     }
@@ -223,10 +224,10 @@ namespace ZeroTemporalTransit.UI
     {
       Vector2 cursorUIPosition = Vector2.zero;
       cursorUIPosition = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-      return cursorUIPosition
+      return cursorUIPosition;
     }
 
-    Camera mapCamera;
+    PlanetariumCamera mapCamera;
     JumpTargetCursor cursor;
 
     public void PlotJump(ModuleZTTDrive zttController, Vector3d storedDestination)
@@ -235,8 +236,8 @@ namespace ZeroTemporalTransit.UI
 
       MapView.EnterMapView();
       mapCamera = MapView.MapCamera;
-
-      cursor = new JumpTargetCursor(Vector3.zero, 0.0f, mapCamera);
+      xzMode = true;
+      cursor = new JumpTargetCursor(Vector3.zero, 0.0f);
       cursor.SetVisiblity(true);
 
       showInfoWindow = true;
