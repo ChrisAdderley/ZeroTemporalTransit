@@ -47,16 +47,24 @@ namespace ZeroTemporalTransit
         StartCoroutine(ActivateSchematicRenderer());
     }
 
-    [KSPEvent(guiActive = true, guiName = "Plot Jump", active = true)]
+    [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Plot Jump", active = true)]
+    public void ClearJump()
+    {
+      Utils.Log(String.Format("[ModuleZTTDrive] [Event]: Clearing destination"));
+      ClearDestination();
+    }
+
+    [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Plot Jump", active = true)]
     public void PlotJump()
     {
-      Utils.Log(String.Format("[ModuleZTTDrive]: Opening plotting overlay"));
+      Utils.Log(String.Format("[ModuleZTTDrive] [Event]: Opening plotting overlay"));
       ZeroTemporalTransitUI.Instance.PlotJump(this, storedDestination);
     }
 
-    [KSPEvent(guiActive = false, guiName = "Activate Drive", active = true)]
+    [KSPEvent(guiActive = false, guiActiveEditor = false, guiName = "Activate Drive", active = true)]
     public void Jump()
     {
+        Utils.Log(String.Format("[ModuleZTTDrive] [Event]: Starting warp jump"));
         DoWarpJump(storedDestination);
     }
 
@@ -72,10 +80,16 @@ namespace ZeroTemporalTransit
       storedDestination = destination;
     }
 
+    public void ClearDestination()
+    {
+      Utils.Log(String.Format("[ModuleZTTDrive]: Cleared Destination"));
+      hasDestination = false;
+    }
+
     public override string GetInfo()
     {
       string info = "Provides FTL jump capability \n\n" +
-          "";
+          "Generates a wormhole centered around the part of a user-defined size. Larger bubbles require more energy.";
       return info;
     }
 
@@ -98,7 +112,7 @@ namespace ZeroTemporalTransit
 
         if (schematicBubbleTransform == null || schematicBubbleRenderer == null)
         {
-          Utils.LogError(String.Format("[ModuleZTTDrive]: Could not find schematic bubble named {0} on part, aborting", SchematicBubbleObjectName));
+          Utils.LogWarning(String.Format("[ModuleZTTDrive]: Could not find schematic bubble named {0} on part, aborting", SchematicBubbleObjectName));
         }
       }
     }
@@ -110,6 +124,7 @@ namespace ZeroTemporalTransit
       if (HighLogic.LoadedSceneIsFlight || HighLogic.LoadedSceneIsEditor)
       {
         Events["ToggleBubble"].guiName = "Visualize Bubble";
+        Events["Jump"].guiName = "Activate Drive";
         Fields["AvailableEnergy"].guiName = "Available Energy";
         Fields["BubbleRadius"].guiName = "Bubble Radius";
       }
@@ -128,6 +143,17 @@ namespace ZeroTemporalTransit
         part.GetConnectedResourceTotals(PartResourceLibrary.Instance.GetDefinition(ResourceName).id, out amt, out maxAmt, false);
 
         AvailableEnergy = amt.ToString();
+
+        if (hasDestination)
+        {
+          Events["Jump"].guiActive = true;
+          Events["ClearJump"].guiActive = true;
+        }
+        else
+        {
+          Events["Jump"].guiActive = false;
+          Events["ClearJump"].guiActive = false;
+        }
       }
 
     }
@@ -150,8 +176,13 @@ namespace ZeroTemporalTransit
     /// <param name="destination">Destination.</param>
     public bool TestJumpConditions(Vector3d destination)
     {
-      bool resourceOk = TestResourceCost(destination);
-      return resourceOk;
+      if (!TestResourceCost(destination))
+        return false;
+      if (!TestAtmosphere())
+        return false;
+      if (!TestGravity())
+        return false;
+      return true;
     }
 
     /// <summary>
@@ -163,8 +194,67 @@ namespace ZeroTemporalTransit
       DestroyPartsOutsideBubble(GetUnsafeParts());
       StartCoroutine(PlayWarpOutEffects());
       StartCoroutine(PlayWarpInEffects());
+      DisplaceVessel(destination)
     }
 
+
+    void DisplaceVessel(Vector3d destination)
+    {
+      //Vector3d solarRefVel = vessel.orbit.GetFrameVel ();
+      //vessel.SetPosition(destination);
+      //vessel.SetWorldVelocity(solarRefVel);
+
+      // Calculate target location and dispersion
+      Vector3d currentDistance = Vector3d.Distance(destination, vessel.GetWorldPos3D());
+      double currentDispersion = CalculateDispersion(currentDistance, vessel.GetWorldPos3D(), destination);
+      Vector3d dispersion = (Vector3d)(UnityEngine.Random.insideUnitSphere /2.0 ) * currentDispersion;
+
+      CelestialBody targetBody = FlightGlobals.getMainBody(destination + dispersion);
+      CelestialBody currentBody = orbitDriver.orbit.referenceBody;
+
+      Utils.Log(String.Format("[ModuleZTTDrive]: Jump summary: \n - Start: {0} ({1})\n - Target: {2} ({3})\n - Distance: {4:F0}\n - Dispersion: {5:F0}\n - Final coordinates: {6}", currentBody.name, vessel.GetWorldPos3D(), targetBody.name, destination, currentDistance, currentDispersion, destination + dispersion));
+
+      OrbitDriver orbitDriver = vessel.orbitDriver;
+      Orbit orbit = orbitDriver.orbit;
+
+      // This code is inspired by several projects related to teleports
+      Orbit newOrbit = new Orbit(orbit.inclination, orbit.eccentricity, orbit.semiMajorAxis, orbit.LAN, orbit.argumentOfPeriapsis, orbit.meanAnomalyAtEpoch, orbit.epoch, orbit.referenceBody);
+      newOrbit.UpdateFromStateVectors(destination, orbit.GetFrameVel(), targetBody, Planetarium.GetUniversalTime());
+
+      vessel.Landed = false;
+      vessel.Splashed = false;
+      vessel.landedAt = string.Empty;
+
+      OrbitPhysicsManager.HoldVesselUnpack(60);
+
+      List<Vessel> allVessels = FlightGlobals.Vessels;
+      foreach (Vessel v in allVessels.AsEnumerable())
+      {
+        if (v.packed == false)
+          v.GoOnRails();
+      }
+      
+      orbit.inclination = newOrbit.inclination;
+      orbit.eccentricity = newOrbit.eccentricity;
+      orbit.semiMajorAxis = newOrbit.semiMajorAxis;
+      orbit.LAN = newOrbit.LAN;
+      orbit.argumentOfPeriapsis = newOrbit.argumentOfPeriapsis;
+      orbit.meanAnomalyAtEpoch = newOrbit.meanAnomalyAtEpoch;
+      orbit.epoch = newOrbit.epoch;
+      orbit.referenceBody = newOrbit.referenceBody;
+      orbit.Init();
+      orbit.UpdateFromUT(Planetarium.GetUniversalTime());
+
+      if (orbit.referenceBody != newOrbit.referenceBody)
+        orbitDriver.OnReferenceBodyChange?.Invoke(newOrbit.referenceBody);
+
+      vessel.orbitDriver.pos = vessel.orbit.pos.xzy;
+      vessel.orbitDriver.vel = vessel.orbit.vel;
+
+      if (vessel.orbitDriver.orbit.referenceBody != currentBody)
+        GameEvents.onVesselSOIChanged.Fire(new GameEvents.HostedFromToAction<Vessel, CelestialBody>(vessel, currentBody, vessel.orbitDriver.orbit.referenceBody));
+
+    }
     /// <summary>
     /// Destroys the parts outside warp bubble.
     /// </summary>
@@ -193,7 +283,7 @@ namespace ZeroTemporalTransit
     /// <summary>
     /// Tests to see if we can jump based on resources
     /// </summary>
-    /// <returns><c>true</c>, if resource cost was tested, <c>false</c> otherwise.</returns>
+    /// <returns><c>true</c>, if resource cost test was passed, <c>false</c> otherwise.</returns>
     /// <param name="destination">Destination.</param>
     bool TestResourceCost(Vector3d destination)
     {
@@ -208,8 +298,43 @@ namespace ZeroTemporalTransit
 
       if (amt < cost)
       {
-          ScreenMessages.PostScreenMessage(new ScreenMessage(String.Format("Aborting jump - not enough energy"), 5.0f, ScreenMessageStyle.UPPER_CENTER));
-          return false;
+        Utils.Log(String.Format("[ModuleZTTDrive]: Resource test was failed (has {0:F2} PE, needs {1:F2} PE)", amt, cost));
+        ScreenMessages.PostScreenMessage(new ScreenMessage(String.Format("Aborting jump - not enough energy"), 5.0f, ScreenMessageStyle.UPPER_CENTER));
+        return false;
+      }
+      return true;
+    }
+
+    /// <summary>
+    /// Tests to see if we can jump based on gravity gradient
+    /// </summary>
+    /// <returns><c>true</c>, if gravity test was passed, <c>false</c> otherwise.</returns>
+    bool TestGravity()
+    {
+      CelestialBody thisBody = vessel.mainBody;
+      double startGrav = thisBody.gravParameter/( Math.Pow(thisBody.GetAltitude(vessel.GetWorldPos3D()), 2));
+      if (startGrav > Settings.gravityJumpThreshold)
+      {
+        Utils.Log(String.Format("[ModuleZTTDrive]: Gravity test was failed (local {0:F2} m/s-2, threshold is {1:F2} m/s-2)", startGrav, Settings.gravityJumpThreshold));
+        ScreenMessages.PostScreenMessage(new ScreenMessage(String.Format("Aborting jump - local gravity gradient is too high"), 5.0f, ScreenMessageStyle.UPPER_CENTER));
+        return false;
+      }
+      return true;
+    }
+
+    /// <summary>
+    /// Tests to see if we can jump based on atmosphere
+    /// </summary>
+    /// <returns><c>true</c>, if atmosphere test was passed, <c>false</c> otherwise.</returns>
+    bool TestAtmosphere()
+    {
+      CelestialBody thisBody = vessel.mainBody;
+      double pressureAtm = thisBody.GetPressureAtm(thisBody.GetAltitude(vessel.GetWorldPos3D()));
+      if (pressureAtm > Settings.atmosphereJumpThreshold)
+      {
+        Utils.Log(String.Format("[ModuleZTTDrive]: Atmo test was failed (local {0:F2} atm, threshold is {1:F2} atm)", pressureAtm, Settings.atmosphereJumpThreshold));
+        ScreenMessages.PostScreenMessage(new ScreenMessage(String.Format("Aborting jump - Cannot jump in dense atmosphere"), 5.0f, ScreenMessageStyle.UPPER_CENTER));
+        return false;
       }
       return true;
     }
@@ -338,11 +463,16 @@ namespace ZeroTemporalTransit
     /// </summary>
     /// <returns>The randomness in the jump in m</returns>
     /// <param name="distance">The distance in m</param>
-    public double CalculateDispersion(double distance)
+    public double CalculateDispersion(double distance, Vector3d startPos, Vector3d endPos)
     {
+      CelestialBody startBody = FlightGlobals.getMainBody(startPos);
+      CelestialBody endBody = FlightGlobals.getMainBody(endPos);
+      double startGrav = startBody.gravParameter/( Math.Pow(startBody.GetAltitude(startPos), 2));
+      double endGrav = endBody.gravParameter/( Math.Pow(endBody.GetAltitude(endPos), 2));
+      double gravCost = (startGrav + endGrav) * Settings.dispersionGravityScale;
 
       double distanceCost = distance * Settings.dispersionDistanceScale;
-      return distanceCost;
+      return distanceCost + gravCost;
     }
   }
 }

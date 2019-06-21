@@ -44,8 +44,14 @@ namespace ZeroTemporalTransit.UI
     #region Vessel Data
     ModuleZTTDrive driver;
     Vector3d currentTarget;
+    Vector3d currentStart;
     CelestialBody targetBody;
+
     double currentDistance = 0d;
+    double currentDispersion = 0d;
+
+    PlanetariumCamera mapCamera;
+    JumpTargetCursor cursor;
     #endregion
 
     public static ZeroTemporalTransitUI Instance { get; private set; }
@@ -152,23 +158,21 @@ namespace ZeroTemporalTransit.UI
 
           jumpCost = String.Format("{0:F1} ", driver.CalculateJumpCost(currentDistance));
           jumpDistance = String.Format("{0} m", currentDistance);
-          jumpDispersion = String.Format("{0} m", driver.CalculateDispersion(currentDistance));
+          jumpDispersion = String.Format("{0} m", currentDispersion);
         }
-
-
       }
     }
     void ListenForInput()
     {
-      if (Input.GetKeyDown("left ctrl"))
+      if (Input.GetKeyDown(Settings.UIYAxisKey))
       {
         yMode = true;
       }
-      if (Input.GetKeyUp("left ctrl"))
+      if (Input.GetKeyUp(Settings.UIYAxisKey))
       {
         yMode = false;
       }
-      if (Input.GetKeyDown("j"))
+      if (Input.GetKeyDown(Settings.UIJumpKey))
       {
         yMode = false;
         xzMode = false;
@@ -179,7 +183,7 @@ namespace ZeroTemporalTransit.UI
     {
       // First calculate all positions
       Vector3 vesselScaledSpacePosition = (Vector3)ScaledSpace.LocalToScaledSpace(driver.part.vessel.GetWorldPos3D());
-      Vector3 zeroPlaneScaledSpacePosition = Vector3.zero; // This eventually needs to become the local targeted body
+      Vector3 zeroPlaneScaledSpacePosition = vesselScaledSpacePosition;  // This eventually needs to become the local targeted body
 
       Vector3 cursorScaledSpacePosition = GetCursorScaledSpacePosition(zeroPlaneScaledSpacePosition);
       Vector2 cursorUIPosition = GetCursorUIPosition();
@@ -193,8 +197,10 @@ namespace ZeroTemporalTransit.UI
 
       // Get the target position in world space
       currentTarget = ScaledSpace.ScaledToLocalSpace((Vector3d)cursorScaledSpacePosition);
+      currentStart = vesselScaledSpacePosition;
       // Get the distance to the current jump point in world space
       currentDistance = Vector3d.Distance(currentTarget, driver.part.vessel.GetWorldPos3D());
+      currentDispersion = driver.CalculateDispersion(currentDistance, currentStart, currentTarget);
       targetBody = FlightGlobals.getMainBody(currentTarget);
       // Update the info UI's position
       windowPos = new Rect(cursorUIPosition.x + 10f, cursorUIPosition.y -10f ,windowPos.width, windowPos.height);
@@ -205,10 +211,11 @@ namespace ZeroTemporalTransit.UI
     /// </summary>
     Vector3 GetCursorScaledSpacePosition(Vector3 zeroPlanePosition)
     {
-      Vector3 cursorScaledSpacePosition = Vector3.zero;
+
+      Vector3 cursorScaledSpacePosition = zeroPlanePositiono;
       Ray ray = PlanetariumCamera.Camera.ScreenPointToRay(Input.mousePosition);
       Plane hPlane = new Plane(Vector3.up, zeroPlanePosition);
-      float distance = 0;
+      float distance = 0f;
       if (hPlane.Raycast(ray, out distance)){
         // get the hit point:
         cursorScaledSpacePosition = ray.GetPoint(distance);
@@ -227,8 +234,7 @@ namespace ZeroTemporalTransit.UI
       return cursorUIPosition;
     }
 
-    PlanetariumCamera mapCamera;
-    JumpTargetCursor cursor;
+
 
     public void PlotJump(ModuleZTTDrive zttController, Vector3d storedDestination)
     {
@@ -241,7 +247,8 @@ namespace ZeroTemporalTransit.UI
       cursor.SetVisiblity(true);
 
       showInfoWindow = true;
-
+      ScreenMessages.PostScreenMessage(new ScreenMessage(String.Format("Press [{0}] to set jump coordinates, hold [{1}] to adjust height", Settings.UIJumpKey, Settings.UIYAxisKey
+        ), 5.0f, ScreenMessageStyle.UPPER_CENTER));
     }
   }
 }
