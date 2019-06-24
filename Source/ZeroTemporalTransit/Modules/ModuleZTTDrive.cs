@@ -14,6 +14,7 @@ namespace ZeroTemporalTransit
 
   public class ModuleZTTDrive : PartModule
   {
+    #region Properties
     // The radius of the bubble
     [KSPField(isPersistant = true, guiActive = true, guiName = "Bubble Radius"),
      UI_FloatRange(minValue = 5f, maxValue = 100f, stepIncrement = 1f)]
@@ -22,6 +23,10 @@ namespace ZeroTemporalTransit
     // Available patterened energy tracker
     [KSPField(isPersistant = false, guiActive = true, guiName = "Available Energy")]
     public string AvailableEnergy;
+
+    // Available patterened energy tracker
+    [KSPField(isPersistant = false, guiActive = true, guiName = "Drive Status")]
+    public string DriveStatus;
 
     // Name of the schematic bubble object
     [KSPField(isPersistant = false)]
@@ -37,6 +42,10 @@ namespace ZeroTemporalTransit
     [KSPField(isPersistant = true)]
     public bool hasDestination = false;
 
+    #endregion
+
+    #region Events
+
     // Toggles the schematic warp bubble rendererer
     [KSPEvent(guiActive = true, guiName = "Visualize Bubble", active = true)]
     public void ToggleBubble()
@@ -47,6 +56,7 @@ namespace ZeroTemporalTransit
         StartCoroutine(ActivateSchematicRenderer());
     }
 
+    // Clears the current jump coordinates
     [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Plot Jump", active = true)]
     public void ClearJump()
     {
@@ -54,6 +64,7 @@ namespace ZeroTemporalTransit
       ClearDestination();
     }
 
+    // Plots the jump
     [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Plot Jump", active = true)]
     public void PlotJump()
     {
@@ -61,6 +72,7 @@ namespace ZeroTemporalTransit
       ZeroTemporalTransitUI.Instance.PlotJump(this, storedDestination);
     }
 
+    // Does the jump
     [KSPEvent(guiActive = false, guiActiveEditor = false, guiName = "Activate Drive", active = true)]
     public void Jump()
     {
@@ -68,11 +80,19 @@ namespace ZeroTemporalTransit
         DoWarpJump(storedDestination);
     }
 
+    #endregion
+
     // Schematic bubble variables
     private bool schematicBubbleOn;
     private MeshRenderer schematicBubbleRenderer;
     private Transform schematicBubbleTransform;
 
+    #region public
+
+    /// <summary>
+    /// Sets the saved destination for the drive
+    /// </summary>
+    /// <param name="destination">Destination.</param>
     public void SetDestination(Vector3d destination)
     {
       Utils.Log(String.Format("[ModuleZTTDrive]: Set destination to {0}", destination));
@@ -80,11 +100,46 @@ namespace ZeroTemporalTransit
       storedDestination = destination;
     }
 
+    /// <summary>
+    /// Clears the destination from the drive
+    /// </summary>
     public void ClearDestination()
     {
       Utils.Log(String.Format("[ModuleZTTDrive]: Cleared Destination"));
       hasDestination = false;
     }
+
+    /// <summary>
+    /// Get the cost of a jump given the distance
+    /// </summary>
+    /// <returns>The cost of the jump</returns>
+    /// <param name="distance">The distance in m</param>
+    public double CalculateJumpCost(double distance)
+    {
+      double massCost = part.vessel.totalMass * Settings.energyPerMass;
+      double bubbleSizeCost = (4.0 / 3.0f) * Math.PI * Math.Pow(BubbleRadius, 3) * Settings.energyRadiusScale;
+      double distanceCost = (massCost + bubbleSizeCost) * distance * Settings.energyDistanceScale;
+      return distanceCost;
+    }
+
+    /// <summary>
+    /// Get the random dispersion of a jump in m
+    /// </summary>
+    /// <returns>The randomness in the jump in m</returns>
+    /// <param name="distance">The distance in m</param>
+    public double CalculateDispersion(double distance, Vector3d startPos, Vector3d endPos)
+    {
+      CelestialBody startBody = FlightGlobals.getMainBody(startPos);
+      CelestialBody endBody = FlightGlobals.getMainBody(endPos);
+      double startGrav = startBody.gravParameter/( Math.Pow(startBody.GetAltitude(startPos), 2));
+      double endGrav = endBody.gravParameter/( Math.Pow(endBody.GetAltitude(endPos), 2));
+      double gravCost = (startGrav + endGrav) * Settings.dispersionGravityScale;
+
+      double distanceCost = distance * Settings.dispersionDistanceScale;
+      return distanceCost + gravCost;
+    }
+
+    #endregion
 
     public override string GetInfo()
     {
@@ -138,31 +193,52 @@ namespace ZeroTemporalTransit
       }
       if (HighLogic.LoadedSceneIsFlight)
       {
-        double amt = 0.0;
-        double maxAmt = 0.0;
-        part.GetConnectedResourceTotals(PartResourceLibrary.Instance.GetDefinition(ResourceName).id, out amt, out maxAmt, false);
+        UpdateFlightUI();
+      }
+    }
 
-        AvailableEnergy = amt.ToString();
+    /// <summary>
+    /// Updates the flight UI
+    /// </summary>
+    private void UpdateFlightUI()
+    {
+      // Update the UI fields
+      double amt = 0.0;
+      double maxAmt = 0.0;
+      part.GetConnectedResourceTotals(PartResourceLibrary.Instance.GetDefinition(ResourceName).id, out amt, out maxAmt, false);
+      AvailableEnergy = amt.ToString();
 
-        if (hasDestination)
-        {
-          Events["Jump"].guiActive = true;
-          Events["ClearJump"].guiActive = true;
-        }
-        else
-        {
-          Events["Jump"].guiActive = false;
-          Events["ClearJump"].guiActive = false;
-        }
+      double startGrav = vessel.mainBody.gravParameter/( Math.Pow(vessel.mainBody.GetAltitude(vessel.GetWorldPos3D()), 2));
+      double pressureAtm = vessel.mainBody.GetPressureAtm(vessel.mainBody.GetAltitude(vessel.GetWorldPos3D()));
+
+      if (startGrav > Settings.gravityJumpThreshold)
+      {
+        DriveStatus = "Local gravity too high";
+      } else if (pressureAtm > Settings.atmosphereJumpThreshold)
+      {
+        DriveStatus = "Too much atmosphere";
+      } else
+      {
+        DriveStatus = "Ready";
       }
 
+      if (hasDestination)
+      {
+        Events["Jump"].guiActive = true;
+        Events["ClearJump"].guiActive = true;
+      }
+      else
+      {
+        Events["Jump"].guiActive = false;
+        Events["ClearJump"].guiActive = false;
+      }
     }
 
     /// <summary>
     /// Attempts a warp jump
     /// </summary>
     /// <param name="destination">Destination.</param>
-    public void DoWarpJump(Vector3d destination)
+    protected void DoWarpJump(Vector3d destination)
     {
       Utils.Log(String.Format("[ModuleZTTDrive]: Attempting ZTT jump"));
       if (TestJumpConditions(destination))
@@ -174,7 +250,7 @@ namespace ZeroTemporalTransit
     /// </summary>
     /// <returns><c>true</c>, if jump conditions passed, <c>false</c> otherwise.</returns>
     /// <param name="destination">Destination.</param>
-    public bool TestJumpConditions(Vector3d destination)
+    protected bool TestJumpConditions(Vector3d destination)
     {
       if (!TestResourceCost(destination))
         return false;
@@ -189,7 +265,7 @@ namespace ZeroTemporalTransit
     /// Initiates the warp jump to the destination
     /// </summary>
     /// <param name="destination">Destination.</param>
-    public void InitiateJump(Vector3d destination)
+    protected void InitiateJump(Vector3d destination)
     {
       DestroyPartsOutsideBubble(GetUnsafeParts());
       StartCoroutine(PlayWarpOutEffects());
@@ -197,8 +273,11 @@ namespace ZeroTemporalTransit
       DisplaceVessel(destination)
     }
 
-
-    void DisplaceVessel(Vector3d destination)
+    /// <summary>
+    /// Does the actual movement of the vessel
+    /// </summary>
+    /// <param name="destination">Destination.</param>
+    protected void DisplaceVessel(Vector3d destination)
     {
       //Vector3d solarRefVel = vessel.orbit.GetFrameVel ();
       //vessel.SetPosition(destination);
@@ -233,7 +312,7 @@ namespace ZeroTemporalTransit
         if (v.packed == false)
           v.GoOnRails();
       }
-      
+
       orbit.inclination = newOrbit.inclination;
       orbit.eccentricity = newOrbit.eccentricity;
       orbit.semiMajorAxis = newOrbit.semiMajorAxis;
@@ -245,21 +324,27 @@ namespace ZeroTemporalTransit
       orbit.Init();
       orbit.UpdateFromUT(Planetarium.GetUniversalTime());
 
+      Utils.Log(String.Format("[ModuleZTTDrive]: Jump was from {0} to {1}", orbit.referenceBody.GetDisplayName(),  newOrbit.referenceBody.GetDisplayName()));
       if (orbit.referenceBody != newOrbit.referenceBody)
+      {
+        Utils.Log(String.Format("[ModuleZTTDrive]: Reference body changed during jump"));
         orbitDriver.OnReferenceBodyChange?.Invoke(newOrbit.referenceBody);
+      }
 
       vessel.orbitDriver.pos = vessel.orbit.pos.xzy;
       vessel.orbitDriver.vel = vessel.orbit.vel;
 
       if (vessel.orbitDriver.orbit.referenceBody != currentBody)
+      {
         GameEvents.onVesselSOIChanged.Fire(new GameEvents.HostedFromToAction<Vessel, CelestialBody>(vessel, currentBody, vessel.orbitDriver.orbit.referenceBody));
+      }
 
     }
     /// <summary>
     /// Destroys the parts outside warp bubble.
     /// </summary>
     /// <param name="toKill">parts to destroy</param>
-    void DestroyPartsOutsideBubble(List<Part> toKill)
+    protected void DestroyPartsOutsideBubble(List<Part> toKill)
     {
       for (int i = 0; i < toKill.Count; i++)
       {
@@ -268,17 +353,64 @@ namespace ZeroTemporalTransit
       }
     }
 
+    #region Effects
+    /// <summary>
+    /// Plays the sequence of effects for starting a warp jump
+    /// </summary>
     IEnumerator PlayWarpOutEffects()
     {
       Utils.Log(String.Format("[ModuleZTTDrive]: Playing warp bubble effects"));
       yield return 0;
     }
 
+    /// <summary>
+    /// Plays the sequence of effects for ending a warp jump
+    /// </summary>
     IEnumerator PlayWarpInEffects()
     {
       Utils.Log(String.Format("[ModuleZTTDrive]: Playing warp out effects"));
       yield return 0;
     }
+
+
+    /// <summary>
+    /// Functions for handling the schematic bubble
+    /// </summary>
+    void HandleSchematicBubble()
+    {
+      if (schematicBubbleTransform != null && schematicBubbleOn)
+      {
+        schematicBubbleTransform.localScale = Vector3.Lerp(schematicBubbleTransform.localScale, Vector3.one * BubbleRadius, TimeWarp.fixedDeltaTime);
+        schematicBubbleTransform.Rotate(TimeWarp.fixedDeltaTime * new Vector3(0f, 1f, 0f), Space.Self);
+      }
+    }
+
+    /// <summary>
+    /// Activates and animates the schematic bubble
+    /// </summary>
+    IEnumerator ActivateSchematicRenderer()
+    {
+      Utils.Log(String.Format("[ModuleZTTDrive]: Playing schematic renderer in animation"));
+      schematicBubbleRenderer.enabled = true;
+      schematicBubbleOn = true;
+      Utils.Log(String.Format("[ModuleZTTDrive]: Schematic renderer on"));
+      yield return 0;
+    }
+
+    /// <summary>
+    /// Deactivates and animates the schematic bubble
+    /// </summary>
+    IEnumerator DisableSchematicRenderer()
+    {
+      Utils.Log(String.Format("[ModuleZTTDrive]: Playing schematic renderer out animation"));
+      schematicBubbleOn = false;
+      schematicBubbleRenderer.enabled = false;
+      Utils.Log(String.Format("[ModuleZTTDrive]: Schematic renderer off"));
+      yield return 0;
+    }
+
+
+    #endregion
 
     /// <summary>
     /// Tests to see if we can jump based on resources
@@ -339,44 +471,6 @@ namespace ZeroTemporalTransit
       return true;
     }
 
-    #region SchematicBubble methods
-
-    /// <summary>
-    /// Functions for handling the schematic bubble
-    /// </summary>
-    void HandleSchematicBubble()
-    {
-      if (schematicBubbleTransform != null && schematicBubbleOn)
-      {
-        schematicBubbleTransform.localScale = Vector3.Lerp(schematicBubbleTransform.localScale, Vector3.one * BubbleRadius, TimeWarp.fixedDeltaTime);
-        schematicBubbleTransform.Rotate(TimeWarp.fixedDeltaTime * new Vector3(0f, 1f, 0f), Space.Self);
-      }
-    }
-
-    /// <summary>
-    /// Activates and animates the schematic bubble
-    /// </summary>
-    IEnumerator ActivateSchematicRenderer()
-    {
-      Utils.Log(String.Format("[ModuleZTTDrive]: Playing schematic renderer in animation"));
-      schematicBubbleRenderer.enabled = true;
-      schematicBubbleOn = true;
-      Utils.Log(String.Format("[ModuleZTTDrive]: Schematic renderer on"));
-      yield return 0;
-    }
-
-    /// <summary>
-    /// Deactivates and animates the schematic bubble
-    /// </summary>
-    IEnumerator DisableSchematicRenderer()
-    {
-      Utils.Log(String.Format("[ModuleZTTDrive]: Playing schematic renderer out animation"));
-      schematicBubbleOn = false;
-      schematicBubbleRenderer.enabled = false;
-      Utils.Log(String.Format("[ModuleZTTDrive]: Schematic renderer off"));
-      yield return 0;
-    }
-    #endregion
 
     /// <summary>
     /// Gets a list of the parts that will be damaged by the bubble
@@ -445,34 +539,7 @@ namespace ZeroTemporalTransit
       return overlappedParts;
 
     }
-    /// <summary>
-    /// Get the cost of a jump given the distance
-    /// </summary>
-    /// <returns>The cost of the jump</returns>
-    /// <param name="distance">The distance in m</param>
-    public double CalculateJumpCost(double distance)
-    {
-      double massCost = part.vessel.totalMass * Settings.energyPerMass;
-      double bubbleSizeCost = (4.0 / 3.0f) * Math.PI * Math.Pow(BubbleRadius, 3) * Settings.energyRadiusScale;
-      double distanceCost = (massCost + bubbleSizeCost) * distance * Settings.energyDistanceScale;
-      return distanceCost;
-    }
 
-    /// <summary>
-    /// Get the random dispersion of a jump in m
-    /// </summary>
-    /// <returns>The randomness in the jump in m</returns>
-    /// <param name="distance">The distance in m</param>
-    public double CalculateDispersion(double distance, Vector3d startPos, Vector3d endPos)
-    {
-      CelestialBody startBody = FlightGlobals.getMainBody(startPos);
-      CelestialBody endBody = FlightGlobals.getMainBody(endPos);
-      double startGrav = startBody.gravParameter/( Math.Pow(startBody.GetAltitude(startPos), 2));
-      double endGrav = endBody.gravParameter/( Math.Pow(endBody.GetAltitude(endPos), 2));
-      double gravCost = (startGrav + endGrav) * Settings.dispersionGravityScale;
 
-      double distanceCost = distance * Settings.dispersionDistanceScale;
-      return distanceCost + gravCost;
-    }
   }
 }
