@@ -30,7 +30,7 @@ namespace ZeroTemporalTransit
     public static float bubbleOuterOffset = 1.0f;
 
     public static string UIJumpKey = "j";
-    public static string UIYAxisKey = "left ctrl";
+    public static string UIYAxisKey = "right ctrl";
 
 
     public static bool DebugUIMode = true;

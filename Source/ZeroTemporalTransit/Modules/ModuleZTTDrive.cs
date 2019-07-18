@@ -57,7 +57,7 @@ namespace ZeroTemporalTransit
     }
 
     // Clears the current jump coordinates
-    [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Plot Jump", active = true)]
+    [KSPEvent(guiActive = true, guiActiveEditor = false, guiName = "Clear Jump", active = true)]
     public void ClearJump()
     {
       Utils.Log(String.Format("[ModuleZTTDrive] [Event]: Clearing destination"));
@@ -132,7 +132,7 @@ namespace ZeroTemporalTransit
       CelestialBody startBody = FlightGlobals.getMainBody(startPos);
       CelestialBody endBody = FlightGlobals.getMainBody(endPos);
       double startGrav = startBody.gravParameter/( Math.Pow(startBody.GetAltitude(startPos), 2));
-      double endGrav = endBody.gravParameter/( Math.Pow(endBody.GetAltitude(endPos), 2));
+      double endGrav = endBody.gravParameter/( Math.Pow(endBody.GetAltitude(endPos), 2))/100d;
       double gravCost = (startGrav + endGrav) * Settings.dispersionGravityScale;
 
       double distanceCost = distance * Settings.dispersionDistanceScale;
@@ -270,7 +270,7 @@ namespace ZeroTemporalTransit
       DestroyPartsOutsideBubble(GetUnsafeParts());
       StartCoroutine(PlayWarpOutEffects());
       StartCoroutine(PlayWarpInEffects());
-      DisplaceVessel(destination)
+      DisplaceVessel(destination);
     }
 
     /// <summary>
@@ -284,16 +284,18 @@ namespace ZeroTemporalTransit
       //vessel.SetWorldVelocity(solarRefVel);
 
       // Calculate target location and dispersion
-      Vector3d currentDistance = Vector3d.Distance(destination, vessel.GetWorldPos3D());
+      double currentDistance = Vector3d.Distance(destination, vessel.GetWorldPos3D());
       double currentDispersion = CalculateDispersion(currentDistance, vessel.GetWorldPos3D(), destination);
-      Vector3d dispersion = (Vector3d)(UnityEngine.Random.insideUnitSphere /2.0 ) * currentDispersion;
+      Vector3d dispersion = (Vector3d)(UnityEngine.Random.insideUnitSphere)/2.0 * currentDispersion;
+
+      OrbitDriver orbitDriver = vessel.orbitDriver;
 
       CelestialBody targetBody = FlightGlobals.getMainBody(destination + dispersion);
       CelestialBody currentBody = orbitDriver.orbit.referenceBody;
 
       Utils.Log(String.Format("[ModuleZTTDrive]: Jump summary: \n - Start: {0} ({1})\n - Target: {2} ({3})\n - Distance: {4:F0}\n - Dispersion: {5:F0}\n - Final coordinates: {6}", currentBody.name, vessel.GetWorldPos3D(), targetBody.name, destination, currentDistance, currentDispersion, destination + dispersion));
 
-      OrbitDriver orbitDriver = vessel.orbitDriver;
+      
       Orbit orbit = orbitDriver.orbit;
 
       // This code is inspired by several projects related to teleports
@@ -432,7 +434,7 @@ namespace ZeroTemporalTransit
       {
         Utils.Log(String.Format("[ModuleZTTDrive]: Resource test was failed (has {0:F2} PE, needs {1:F2} PE)", amt, cost));
         ScreenMessages.PostScreenMessage(new ScreenMessage(String.Format("Aborting jump - not enough energy"), 5.0f, ScreenMessageStyle.UPPER_CENTER));
-        return false;
+        return true;
       }
       return true;
     }
@@ -444,7 +446,7 @@ namespace ZeroTemporalTransit
     bool TestGravity()
     {
       CelestialBody thisBody = vessel.mainBody;
-      double startGrav = thisBody.gravParameter/( Math.Pow(thisBody.GetAltitude(vessel.GetWorldPos3D()), 2));
+      double startGrav = thisBody.gravParameter/( Math.Pow(thisBody.GetAltitude(vessel.GetWorldPos3D()), 2))/100d;
       if (startGrav > Settings.gravityJumpThreshold)
       {
         Utils.Log(String.Format("[ModuleZTTDrive]: Gravity test was failed (local {0:F2} m/s-2, threshold is {1:F2} m/s-2)", startGrav, Settings.gravityJumpThreshold));
@@ -504,7 +506,7 @@ namespace ZeroTemporalTransit
       List<Part> includedParts = new List<Part>();
       for (int i = 0; i < enclosedOrTouchingInner.Count; i++)
       {
-        if (!enclosedOrTouchingOuter.Contains(enclosedOrTouchingInner[i]))
+        if (enclosedOrTouchingOuter.Contains(enclosedOrTouchingInner[i]))
         {
             includedParts.Add(enclosedOrTouchingInner[i]);
         }

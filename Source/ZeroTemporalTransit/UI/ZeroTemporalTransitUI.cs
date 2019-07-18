@@ -143,6 +143,19 @@ namespace ZeroTemporalTransit.UI
       GUILayout.Label(jumpCost);
       GUILayout.EndHorizontal();
     }
+    void LateUpdate()
+    {
+      if (HighLogic.LoadedSceneIsFlight && MapView.MapIsEnabled)
+      {
+        if (driver != null)
+        {
+          if (xzMode)
+          {
+            UpdateWindowPosition();
+          }
+        }
+      }
+    }
 
     void Update()
     {
@@ -152,21 +165,24 @@ namespace ZeroTemporalTransit.UI
         {
           if (xzMode)
           {
-            UpdateWindowPosition();
             ListenForInput();
           }
 
           jumpCost = String.Format("{0:F1} ", driver.CalculateJumpCost(currentDistance));
-          jumpDistance = String.Format("{0} m", currentDistance);
-          jumpDispersion = String.Format("{0} m", currentDispersion);
+          jumpDistance = String.Format("{0:F0} km", currentDistance/1000d);
+          jumpDispersion = String.Format("{0:F0} km", currentDispersion/1000d);
         }
       }
     }
+
+    float currentY = 0f;
+
     void ListenForInput()
     {
       if (Input.GetKeyDown(Settings.UIYAxisKey))
       {
         yMode = true;
+        lastMouse = Input.mousePosition;
       }
       if (Input.GetKeyUp(Settings.UIYAxisKey))
       {
@@ -176,14 +192,19 @@ namespace ZeroTemporalTransit.UI
       {
         yMode = false;
         xzMode = false;
+        SaveDestination();
       }
     }
 
+    Vector3 currentTargetScaledSpace;
+
     void UpdateWindowPosition()
     {
+      
       // First calculate all positions
       Vector3 vesselScaledSpacePosition = (Vector3)ScaledSpace.LocalToScaledSpace(driver.part.vessel.GetWorldPos3D());
-      Vector3 zeroPlaneScaledSpacePosition = vesselScaledSpacePosition;  // This eventually needs to become the local targeted body
+      Vector3 zeroPlaneScaledSpacePosition = vesselScaledSpacePosition;
+     
 
       Vector3 cursorScaledSpacePosition = GetCursorScaledSpacePosition(zeroPlaneScaledSpacePosition);
       Vector2 cursorUIPosition = GetCursorUIPosition();
@@ -196,6 +217,7 @@ namespace ZeroTemporalTransit.UI
       }
 
       // Get the target position in world space
+      currentTargetScaledSpace = cursorScaledSpacePosition;
       currentTarget = ScaledSpace.ScaledToLocalSpace((Vector3d)cursorScaledSpacePosition);
       currentStart = vesselScaledSpacePosition;
       // Get the distance to the current jump point in world space
@@ -206,21 +228,39 @@ namespace ZeroTemporalTransit.UI
       windowPos = new Rect(cursorUIPosition.x + 10f, cursorUIPosition.y -10f ,windowPos.width, windowPos.height);
     }
 
+    Vector3 lastMouse = Vector3.zero;
     /// <summary>
     /// Gets the ScaledSpace position of the mouse cursor with reference to a y-up zero plane
     /// </summary>
     Vector3 GetCursorScaledSpacePosition(Vector3 zeroPlanePosition)
     {
+      Vector3 cursorScaledSpacePosition = zeroPlanePosition;
 
-      Vector3 cursorScaledSpacePosition = zeroPlanePositiono;
+      if (yMode)
+      {
+        float delta =  Input.mousePosition.y- lastMouse.y;
+
+        currentY = currentY + delta;
+        lastMouse = Input.mousePosition;
+
+        
+      }
+
       Ray ray = PlanetariumCamera.Camera.ScreenPointToRay(Input.mousePosition);
-      Plane hPlane = new Plane(Vector3.up, zeroPlanePosition);
+      Plane hPlane = new Plane(Vector3.up, zeroPlanePosition + Vector3.up*currentY);
+
       float distance = 0f;
-      if (hPlane.Raycast(ray, out distance)){
+      if (hPlane.Raycast(ray, out distance))
+      {
         // get the hit point:
         cursorScaledSpacePosition = ray.GetPoint(distance);
-        Utils.Log(cursorScaledSpacePosition.ToString());
+        
       }
+      if (yMode)
+      {
+        cursorScaledSpacePosition = new Vector3(currentTargetScaledSpace.x, cursorScaledSpacePosition.y, currentTargetScaledSpace.z);
+      }
+
       return cursorScaledSpacePosition;
     }
 
@@ -250,5 +290,15 @@ namespace ZeroTemporalTransit.UI
       ScreenMessages.PostScreenMessage(new ScreenMessage(String.Format("Press [{0}] to set jump coordinates, hold [{1}] to adjust height", Settings.UIJumpKey, Settings.UIYAxisKey
         ), 5.0f, ScreenMessageStyle.UPPER_CENTER));
     }
+    public void SaveDestination()
+    {
+      cursor.DestroyCursor();
+      showInfoWindow = false;
+      driver.SetDestination(currentTarget);
+      MapView.ExitMapView();
+
+    }
   }
+
+ 
 }
